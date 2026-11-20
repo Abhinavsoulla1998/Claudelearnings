@@ -1,0 +1,40 @@
+# Project: [Project Name]
+
+## Tech Stack
+- Runtime: [e.g., Node.js 20 LTS, Python 3.12]
+- Framework: [e.g., Fastify 4, Django 5, Spring Boot 3]
+- Database: [e.g., PostgreSQL 16 with Drizzle ORM, MongoDB, MySQL]
+- Test runner: [e.g., Vitest, Jest, pytest, JUnit]
+- Package manager: [e.g., pnpm, npm, pip, gradle]
+- Language: [e.g., TypeScript 5.4, Python 3.12, Java 21]
+
+## Commands
+- `[start command]`   — start development server
+- `[test command]`    — run test suite
+- `[lint command]`    — run linter
+- `[build command]`   — build for production
+- `[format command]`  — format code
+
+## Code Conventions
+- [Describe naming conventions: camelCase, snake_case, etc.]
+- [Describe import style: named exports vs default exports]
+- [Describe error handling pattern: Result type, exceptions, etc.]
+- [Describe async pattern: async/await, promises, etc.]
+- [Describe file organization: one class per file, feature folders, etc.]
+
+## Architecture
+- [Describe the main layers: routes, services, repositories, models]
+- [Describe key directories and what goes in each]
+- [Describe any important patterns: dependency injection, repository pattern, etc.]
+
+## Off-Limits (never modify these)
+- `[generated code directory]` — auto-generated, do not edit
+- `[vendor directory]` — third-party code
+- `.env` files — use environment variables or a secrets manager
+- `[migration history directory]` — add new migrations, never edit existing ones
+
+## Important Context
+- [Any non-obvious architectural decisions]
+- [Known limitations or technical debt to be aware of]
+- [Any third-party integrations and how they work]
+- [Links to relevant internal docs or architecture decision records]

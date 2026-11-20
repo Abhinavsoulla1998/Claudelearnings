@@ -1,0 +1,43 @@
+{
+  "_comment": "Database MCP configuration — PostgreSQL and SQLite.",
+  "_security": [
+    "Always create a dedicated read-only database user for Claude.",
+    "SQL to create a read-only Postgres user:",
+    "  CREATE USER claude_readonly WITH PASSWORD 'strong-random-password';",
+    "  GRANT CONNECT ON DATABASE dev_database TO claude_readonly;",
+    "  GRANT USAGE ON SCHEMA public TO claude_readonly;",
+    "  GRANT SELECT ON ALL TABLES IN SCHEMA public TO claude_readonly;",
+    "  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO claude_readonly;",
+    "Never use the postgres superuser or application user credentials here.",
+    "Never point this config at a staging or production database."
+  ],
+  "mcpServers": {
+
+    "postgres": {
+      "_comment": "PostgreSQL connection. Replace host, port, and database name to match your dev environment.",
+      "_readonly_user": "claude_readonly — created with SELECT-only grants as shown in _security above.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://claude_readonly@localhost:5432/dev_database"
+      ],
+      "env": {
+        "_comment_env": "Set PGPASSWORD_READONLY in your shell profile or a .env file loaded before starting Claude. Do not hardcode the value here.",
+        "PGPASSWORD": "${PGPASSWORD_READONLY}"
+      }
+    },
+
+    "sqlite": {
+      "_comment": "SQLite connection. Requires no credentials. Path must be an absolute path to the .db file.",
+      "_use_case": "Local development databases, prototypes, and analytics files that do not contain PII.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite",
+        "/absolute/path/to/dev.db"
+      ]
+    }
+
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "_comment": "Full MCP reference configuration for .claude/settings.json",
+  "_usage": "Copy individual server blocks into your own .claude/settings.json. Never copy credentials — always use ${ENV_VAR} references.",
+  "mcpServers": {
+
+    "filesystem": {
+      "_comment": "Grants Claude read/write access to specified directory trees. Scope to the narrowest path needed.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/yourname/Documents/project-docs",
+        "/Users/yourname/Downloads/reports"
+      ]
+    },
+
+    "postgres": {
+      "_comment": "Connects Claude to a PostgreSQL database. Always use a read-only user. Never point at production.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://claude_readonly@localhost:5432/dev_database"
+      ],
+      "env": {
+        "_comment_env": "PGPASSWORD is read by libpq; never put the password in the connection string directly.",
+        "PGPASSWORD": "${PGPASSWORD_READONLY}"
+      }
+    },
+
+    "sqlite": {
+      "_comment": "Connects Claude to a local SQLite file. No credentials required. Useful for local dev and prototyping.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite",
+        "/absolute/path/to/your/database.db"
+      ]
+    },
+
+    "github": {
+      "_comment": "Connects Claude to GitHub. Use a fine-grained PAT scoped to specific repos with read-only permissions.",
+      "_pat_scopes": "Contents: read, Issues: read, Pull Requests: read, Metadata: read",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+
+    "slack": {
+      "_comment": "Connects Claude to Slack. Create a dedicated Slack app; scope the bot token to channels:history and channels:read only.",
+      "_bot_scopes": "channels:history, channels:read, users:read",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-slack"
+      ],
+      "env": {
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+        "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"
+      }
+    },
+
+    "puppeteer": {
+      "_comment": "Gives Claude a headless browser. Use for local/staging smoke tests only — never against production.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ]
+    },
+
+    "jira": {
+      "_comment": "Custom MCP server wrapping the Jira REST API. See examples/custom-mcp-server.ts for the implementation.",
+      "_token_scopes": "Read: browse projects, view issues. Write not granted — use a read-only API token.",
+      "command": "npx",
+      "args": [
+        "ts-node",
+        "./mcp-servers/custom-mcp-server.ts"
+      ],
+      "env": {
+        "JIRA_BASE_URL": "${JIRA_BASE_URL}",
+        "JIRA_TOKEN": "${JIRA_TOKEN}"
+      }
+    }
+
+  }
+}

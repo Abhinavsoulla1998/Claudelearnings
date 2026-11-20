@@ -1,0 +1,154 @@
+name: Claude Code Review
+
+# Domain 3, Task 3.6: Integrate Claude Code into CI/CD pipelines
+# Key patterns:
+#   - Use -p flag to prevent interactive input hangs in CI
+#   - Use --output-format json + --json-schema for machine-parseable output
+#   - Use a FRESH Claude instance for review (session context isolation)
+#   - Include prior findings on re-runs to avoid duplicate comments
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Get changed files
+        id: diff
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
+          echo "files=$(cat changed_files.txt | tr '\n' ',')" >> $GITHUB_OUTPUT
+
+      - name: Fetch existing PR comments (for de-duplication on re-runs)
+        id: prior
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const priorFindings = comments.data
+              .filter(c => c.body.includes('<!-- claude-review -->'))
+              .map(c => c.body)
+              .join('\n---\n');
+            return priorFindings || 'No prior findings.';
+
+      - name: Run Claude Code review (non-interactive)
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # -p / --print: prevents interactive input hangs — required for all CI usage
+          # --output-format json: structured output for automated processing
+          # --json-schema: enforces schema compliance on the JSON output
+          #
+          # SESSION CONTEXT ISOLATION: this is a fresh Claude instance with no prior
+          # reasoning context from code generation — more effective for catching subtle issues.
+
+          PRIOR_FINDINGS="${{ steps.prior.outputs.result }}"
+          CHANGED_FILES="${{ steps.diff.outputs.files }}"
+
+          claude -p \
+            --output-format json \
+            --json-schema '{
+              "type": "object",
+              "properties": {
+                "issues": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file":       { "type": "string" },
+                      "line":       { "type": ["integer", "null"] },
+                      "severity":   { "type": "string", "enum": ["error", "warning", "info"] },
+                      "category":   { "type": "string", "enum": ["bug", "security", "performance", "style"] },
+                      "message":    { "type": "string" },
+                      "suggestion": { "type": ["string", "null"] }
+                    },
+                    "required": ["file", "severity", "category", "message"]
+                  }
+                },
+                "summary":            { "type": "string" },
+                "has_blocking_issues": { "type": "boolean" }
+              },
+              "required": ["issues", "summary", "has_blocking_issues"]
+            }' \
+            "Review the following changed files for bugs and security issues.
+
+          Changed files: ${CHANGED_FILES}
+
+          Report ONLY: bugs where code behavior contradicts documented intent, and SQL injection / XSS / auth vulnerabilities.
+          Skip: style issues, naming conventions, minor optimizations.
+
+          Prior review findings from earlier commits (DO NOT re-report these — only report new or still-unaddressed issues):
+          ${PRIOR_FINDINGS}
+
+          Project context: see CLAUDE.md for coding standards, testing conventions, and available fixtures." \
+          > review_output.json
+
+      - name: Post review as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let review;
+            try {
+              review = JSON.parse(fs.readFileSync('review_output.json', 'utf8'));
+            } catch (e) {
+              console.log('Failed to parse review output:', e.message);
+              return;
+            }
+
+            if (!review.issues || review.issues.length === 0) {
+              console.log('No issues found — skipping comment');
+              return;
+            }
+
+            const issueRows = review.issues.map(i =>
+              `| \`${i.file}:${i.line ?? '?'}\` | ${i.severity} | ${i.category} | ${i.message} |`
+            ).join('\n');
+
+            const body = `<!-- claude-review -->
+## Claude Code Review
+
+${review.summary}
+
+| Location | Severity | Category | Issue |
+|----------|----------|----------|-------|
+${issueRows}
+
+<sub>Generated by Claude Code · [D3 T3.6 / D4 T4.3] · Session-isolated review instance</sub>`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Fail pipeline on blocking issues
+        run: |
+          HAS_BLOCKING=$(jq '.has_blocking_issues // false' review_output.json)
+          if [ "$HAS_BLOCKING" = "true" ]; then
+            echo "Claude Code review found blocking issues — failing pipeline"
+            exit 1
+          fi
+          echo "No blocking issues found"

@@ -1,0 +1,18 @@
+{
+  "_comment": "PostToolUse hook: appends a timestamped audit record to /tmp/claude-audit.log every time Claude uses the Edit tool. Adapt the log path to suit your environment.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "_comment": "Matcher 'Edit' fires on the built-in Edit tool. Change to 'Write' or 'Bash' to audit other tool types.",
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "CLAUDE_TOOL_INPUT contains the JSON-encoded tool input (file path, old string, new string). CLAUDE_TOOL_OUTPUT contains the result. Both are available in PostToolUse hooks.",
+            "command": "echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) [AUDIT] EDIT user=$USER pwd=$PWD input=$CLAUDE_TOOL_INPUT\" >> /tmp/claude-audit.log"
+          }
+        ]
+      }
+    ]
+  }
+}

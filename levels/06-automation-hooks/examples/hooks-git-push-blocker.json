@@ -1,0 +1,18 @@
+{
+  "_comment": "PreToolUse hook: blocks any Bash tool call that contains 'git push'. The hook exits 1, which causes Claude to treat the tool call as blocked and report the reason to the user.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "_comment": "Matcher 'Bash' fires on every shell command Claude attempts to run.",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "CLAUDE_TOOL_INPUT is set by Claude Code to the JSON-encoded tool input before the hook runs. For the Bash tool this includes the 'command' field. The grep checks for 'git push' anywhere in that input. If found: print a message and exit 1 (blocked). If not found: exit 0 (allowed).",
+            "command": "echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git push' && echo 'BLOCKED: git push commands are not permitted from Claude sessions. Use your terminal to push after reviewing changes.' >&2 && exit 1 || exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

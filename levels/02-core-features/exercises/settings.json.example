@@ -1,0 +1,30 @@
+{
+  "_comment": "Copy this to .claude/settings.json in your project root. Adjust commands for your tech stack.",
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm test -- *)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix)",
+      "Bash(npm run build)",
+      "Bash(npm run typecheck)",
+      "Read(**)",
+      "Edit(src/**)",
+      "Edit(tests/**)",
+      "Edit(test/**)",
+      "Edit(spec/**)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf*)",
+      "Bash(sudo*)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Edit(.env*)",
+      "Edit(*.pem)",
+      "Edit(*.key)"
+    ]
+  }
+}

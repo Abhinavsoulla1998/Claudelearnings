@@ -1,0 +1,29 @@
+{
+  "_comment": "Puppeteer (browser automation) MCP configuration.",
+  "_use_cases": [
+    "Smoke testing local development servers before a deployment",
+    "Exploratory UI testing: 'Does this page load and show the right elements?'",
+    "Taking screenshots of app states for bug reports",
+    "Checking for browser console errors across multiple pages"
+  ],
+  "_safety_rules": [
+    "Only run against localhost or an explicit staging URL — never production.",
+    "Puppeteer can submit forms and click buttons. A misunderstood prompt can trigger side effects.",
+    "Puppeteer has access to all URLs reachable from the machine running Claude, including internal network addresses.",
+    "If your machine has access to internal admin panels or infrastructure UIs (Kubernetes dashboard, Grafana, etc.), those are reachable by this MCP server.",
+    "Scope firewall rules to block the MCP process from reaching sensitive internal services if necessary."
+  ],
+  "mcpServers": {
+
+    "puppeteer": {
+      "_comment": "Headless Chromium browser controlled by Claude. No credentials required — access is based on network reachability.",
+      "_when_to_use": "Local and staging smoke tests, UI verification, screenshot capture. Not a replacement for automated Playwright/Cypress suites.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ]
+    }
+
+  }
+}

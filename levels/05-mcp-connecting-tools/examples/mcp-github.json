@@ -1,0 +1,35 @@
+{
+  "_comment": "GitHub MCP configuration.",
+  "_pat_setup": [
+    "Create a fine-grained Personal Access Token at https://github.com/settings/tokens",
+    "Token type: Fine-grained PAT (not classic)",
+    "Repository access: Only select the repositories Claude needs",
+    "Required permissions (read-only):",
+    "  - Contents: Read",
+    "  - Issues: Read",
+    "  - Pull requests: Read",
+    "  - Metadata: Read (always selected by default)",
+    "Optional permissions (only if Claude needs to write):",
+    "  - Issues: Read and write  (allows creating comments)",
+    "  - Pull requests: Read and write  (allows creating review comments)",
+    "Rotate this token on the same schedule as your other service account tokens.",
+    "Never use a classic token with 'repo' scope — it grants full read/write access to all repos."
+  ],
+  "mcpServers": {
+
+    "github": {
+      "_comment": "Connects Claude to GitHub. The GITHUB_TOKEN environment variable must be set before starting Claude.",
+      "_least_privilege": "Scope the PAT to specific repos and read-only permissions unless write access is explicitly required.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "_comment_env": "Export GITHUB_TOKEN in your shell profile or CI environment. Never paste the token value here.",
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+
+  }
+}

@@ -1,0 +1,35 @@
+# Add this job to your .gitlab-ci.yml
+# Required CI/CD variable: ANTHROPIC_API_KEY (protected, masked)
+
+claude-review:
+  stage: test
+  image: node:20-slim
+  before_script:
+    - npm install -g @anthropic-ai/claude-code
+  script:
+    - |
+      echo "Running Claude Code review on merge request changes..."
+      claude -p "Review the changes in this merge request.
+
+      Check for:
+      1. Security vulnerabilities (injection, XSS, hardcoded secrets, insecure dependencies)
+      2. Logic errors and edge cases that could cause runtime failures
+      3. Missing error handling for external calls
+      4. Performance issues (N+1 queries, missing indexes, synchronous blocking operations)
+      5. Violations of common coding conventions
+
+      For each finding output:
+        FINDING [severity: LOW|MEDIUM|HIGH|CRITICAL] [file:line]: [description]
+        FIX: [specific suggested fix]
+
+      If no issues found, output: REVIEW PASSED - no significant issues found.
+
+      End with a one-line summary: 'X findings: Y critical, Z high, W medium, V low'" \
+      --permission-mode auto \
+      --output-format text
+  variables:
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: true  # Change to false once you have calibrated the review prompt
+  timeout: 5 minutes

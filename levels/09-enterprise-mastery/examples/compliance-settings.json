@@ -1,0 +1,110 @@
+{
+  "_comment_top": "Compliance-oriented Claude Code settings. Designed for regulated environments (SOC 2, HIPAA, PCI-DSS, ISO 27001). Copy to .claude/settings.json in repos that handle sensitive data. Review each deny rule and hook command with your security team before deployment.",
+
+  "model": "claude-sonnet-4-6",
+  "effort": "normal",
+  "permissionMode": "default",
+
+  "_comment_permissions": "Deny rules implement a layered security control. These patterns block the most common attack vectors observed in AI-assisted code execution: supply-chain injection via piped scripts, privilege escalation via sudo, and data exfiltration via base64-encoded payloads.",
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "_comment_supply_chain": "Block curl-pipe-bash and wget-pipe-sh: the primary vector for supply-chain attacks where malicious content instructs Claude to download and execute a remote script.",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(curl *|bash)",
+      "Bash(curl *|sh)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(wget *|bash)",
+      "Bash(wget *|sh)",
+
+      "_comment_privilege_escalation": "Block sudo: Claude sessions should not require elevated privileges. If a task genuinely needs sudo, it must be performed manually after human review.",
+      "Bash(sudo *)",
+
+      "_comment_eval": "Block eval: prevents execution of dynamically constructed code strings, which is a common prompt injection technique.",
+      "Bash(eval *)",
+      "Bash(* eval *)",
+
+      "_comment_base64": "Block base64-decode-pipe patterns: a technique used to obfuscate malicious commands from simple text-matching filters. The full pattern variations are listed to prevent bypass via whitespace or flag reordering.",
+      "Bash(base64 -d * | bash)",
+      "Bash(base64 -d * | sh)",
+      "Bash(base64 --decode * | bash)",
+      "Bash(echo * | base64 -d | bash)",
+
+      "_comment_destructive": "Block recursive forced deletion: prevents accidental or malicious mass file deletion.",
+      "Bash(rm -rf*)",
+      "Bash(rm -fr*)",
+
+      "_comment_git_push": "Block git push: Claude should not push code to remote repositories. All pushes must be performed by a human after reviewing Claude's changes.",
+      "Bash(git push*)",
+
+      "_comment_env_files": "Block editing secret files: .env files and credential files must not be modified by Claude.",
+      "Edit(.env*)",
+      "Write(.env*)",
+      "Edit(*credentials*)",
+      "Write(*credentials*)",
+      "Edit(*secret*)",
+      "Write(*secret*)"
+    ]
+  },
+
+  "_comment_hooks": "Audit hooks write structured log records to /var/log/claude-audit.log. This file should be owned by root (or a dedicated logging user) with append-only permissions (chattr +a) to prevent tampering. Ship the log to your SIEM via your standard log forwarding agent (Filebeat, Fluentd, etc.).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "_comment": "Log all Bash commands before execution. This creates a pre-execution record that can be compared with the post-execution record to detect if a command was altered mid-flight (rare but possible in some hook chain configurations).",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\", \\\"event\\\": \\\"PRE_BASH\\\", \\\"user\\\": \\\"$USER\\\", \\\"host\\\": \\\"$(hostname)\\\", \\\"pwd\\\": \\\"$PWD\\\", \\\"input\\\": $CLAUDE_TOOL_INPUT}\" >> /var/log/claude-audit.log"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "_comment": "Log all Edit tool completions. The post-execution record captures what actually ran (vs. what was intended), including any tool output that indicates success or failure. File path is extracted from CLAUDE_TOOL_INPUT.",
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\", \\\"event\\\": \\\"POST_EDIT\\\", \\\"user\\\": \\\"$USER\\\", \\\"host\\\": \\\"$(hostname)\\\", \\\"pwd\\\": \\\"$PWD\\\", \\\"input\\\": $CLAUDE_TOOL_INPUT}\" >> /var/log/claude-audit.log"
+          }
+        ]
+      },
+      {
+        "_comment": "Log all Write tool completions. New file creation is a higher-risk event than edits and warrants its own log record.",
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\", \\\"event\\\": \\\"POST_WRITE\\\", \\\"user\\\": \\\"$USER\\\", \\\"host\\\": \\\"$(hostname)\\\", \\\"pwd\\\": \\\"$PWD\\\", \\\"input\\\": $CLAUDE_TOOL_INPUT}\" >> /var/log/claude-audit.log"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "_comment": "Log session end events with session cost. This enables per-session cost attribution for chargeback and budget reporting.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\", \\\"event\\\": \\\"SESSION_END\\\", \\\"user\\\": \\\"$USER\\\", \\\"host\\\": \\\"$(hostname)\\\", \\\"pwd\\\": \\\"$PWD\\\"}\" >> /var/log/claude-audit.log"
+          }
+        ]
+      }
+    ]
+  },
+
+  "_comment_env": "Do not add secret values to this block. This file is committed to source control. Reference secrets from environment variables set in the shell profile or injected by your secrets management system.",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

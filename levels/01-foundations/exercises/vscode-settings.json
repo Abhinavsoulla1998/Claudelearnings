@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy to .vscode/settings.json in your project. Requires Claude Code VS Code extension.",
+  "claudeCode.enabled": true,
+  "claudeCode.showInlineDiffs": true,
+  "claudeCode.permissionMode": "plan",
+  "editor.autoSave": "off",
+  "editor.formatOnSave": false
+}

@@ -1,0 +1,63 @@
+name: Generate Release Notes
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release-notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | sed -n '2p')
+          echo "prev_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
+          echo "current_tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        run: |
+          git log ${{ steps.prev_tag.outputs.prev_tag }}..${{ steps.prev_tag.outputs.current_tag }} \
+            --oneline --no-merges | \
+          claude -p "Generate release notes from these git commits for version ${{ steps.prev_tag.outputs.current_tag }}.
+
+          Format using Keep a Changelog (https://keepachangelog.com):
+          ## [${{ steps.prev_tag.outputs.current_tag }}] - $(date +%Y-%m-%d)
+          ### Added
+          ### Changed
+          ### Fixed
+          ### Breaking Changes
+
+          Rules:
+          - User-facing language only (no ticket numbers, branch names, or internal jargon)
+          - One line per item
+          - Skip: merge commits, version bumps, dependency updates unless notable
+          - If a section is empty, omit it" \
+          --permission-mode auto \
+          --output-format text > release-notes.md
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          tag_name: ${{ steps.prev_tag.outputs.current_tag }}

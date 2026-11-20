@@ -1,0 +1,106 @@
+{
+  "_description": "PostToolUse hook examples for the Claude Agent SDK. Domain 1, Task 1.5: Apply Agent SDK hooks for tool call interception and data normalization.",
+
+  "_key_principle": "Hooks provide DETERMINISTIC enforcement. Prompt instructions are PROBABILISTIC — they may be ignored under certain conditions. Use hooks when compliance is required, not just desired.",
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "id": "normalize-timestamps",
+        "description": "Normalize timestamp formats from MCP tools before the model processes them",
+        "matcher": {
+          "tool_name_pattern": "get_*",
+          "_comment": "Applies to any tool whose name starts with 'get_'"
+        },
+        "purpose": "Different MCP tools return dates in different formats (Unix timestamps, ISO 8601, human-readable). Normalizing to a consistent format prevents the model from making date comparison errors.",
+        "transform": {
+          "type": "normalize_timestamps",
+          "target_format": "ISO 8601",
+          "fields": ["created_at", "updated_at", "timestamp", "date"],
+          "example_input": {"created_at": 1746057600, "status": "active"},
+          "example_output": {"created_at": "2026-05-01T00:00:00Z", "status": "active"}
+        }
+      },
+      {
+        "id": "refund-policy-gate",
+        "description": "Block refund tool calls exceeding the automated approval threshold and redirect to human escalation",
+        "matcher": {
+          "tool_name": "process_refund"
+        },
+        "enforcement": {
+          "type": "policy_gate",
+          "condition": "input.amount > 500",
+          "action": "block_and_redirect",
+          "redirect_tool": "escalate_to_human",
+          "redirect_payload": {
+            "reason": "Refund amount exceeds automated approval threshold ($500)",
+            "original_request": "{{tool_input}}",
+            "requires_manager_approval": true,
+            "escalation_type": "refund_approval"
+          }
+        },
+        "_why_hook_not_prompt": "A system prompt instruction like 'never approve refunds over $500 automatically' has a non-zero failure rate under certain conditions. For compliance-critical business rules, hook-based enforcement is the only reliable approach."
+      },
+      {
+        "id": "enrich-error-metadata",
+        "description": "Add structured error metadata to all MCP tool failures so the agent can make informed retry/escalation decisions",
+        "matcher": {
+          "is_error": true
+        },
+        "error_enrichment": {
+          "type": "classify_error",
+          "error_categories": {
+            "transient": ["timeout", "service_unavailable", "rate_limit", "connection_reset"],
+            "validation": ["invalid_input", "missing_required_field", "format_error", "schema_mismatch"],
+            "permission": ["unauthorized", "forbidden", "access_denied", "token_expired"],
+            "business": ["policy_violation", "insufficient_funds", "account_locked", "duplicate_request"]
+          },
+          "output_schema": {
+            "errorCategory": "transient | validation | permission | business",
+            "isRetryable": "boolean — true ONLY for transient errors",
+            "userMessage": "Human-readable explanation safe to surface to the end user",
+            "technicalDetail": "Internal error detail for logging"
+          },
+          "example_input": {
+            "isError": true,
+            "content": "Connection timeout after 30s"
+          },
+          "example_output": {
+            "isError": true,
+            "errorCategory": "transient",
+            "isRetryable": true,
+            "userMessage": "The service is temporarily unavailable. Please try again in a moment.",
+            "technicalDetail": "Connection timeout after 30s to upstream service"
+          }
+        },
+        "_why_structured_errors": "Generic error responses like 'Operation failed' prevent the agent from making appropriate recovery decisions. Structured metadata allows the agent to retry transient errors, escalate permission errors, and communicate validation errors clearly to users."
+      },
+      {
+        "id": "audit-log-tool-calls",
+        "description": "Log all tool invocations and results for compliance and observability",
+        "matcher": {
+          "tool_name_pattern": "*"
+        },
+        "audit": {
+          "type": "append_to_log",
+          "log_fields": ["tool_name", "tool_input", "result_summary", "timestamp", "session_id"],
+          "_note": "Replace with your observability platform integration (Datadog, CloudWatch, etc.)"
+        }
+      }
+    ]
+  },
+
+  "decision_guide": {
+    "use_hooks_when": [
+      "Business rules require guaranteed compliance (refund thresholds, PII handling, rate limits)",
+      "Data normalization is needed across heterogeneous MCP tool outputs",
+      "All tool interactions must be audit-logged for compliance",
+      "Tool calls must be blocked based on runtime conditions (not just model judgment)"
+    ],
+    "use_prompt_instructions_when": [
+      "Soft guidelines that benefit from model judgment and context",
+      "Stylistic preferences (tone, format, level of detail)",
+      "Heuristics for ambiguous cases where flexibility is acceptable"
+    ]
+  }
+}

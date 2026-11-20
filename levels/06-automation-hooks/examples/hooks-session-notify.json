@@ -1,0 +1,17 @@
+{
+  "_comment": "Stop hook: prints a timestamped message to the terminal when Claude ends a session. Adapt the command to send a desktop notification (notify-send on Linux, osascript on macOS) or a Slack message via curl.",
+  "hooks": {
+    "Stop": [
+      {
+        "_comment": "Stop hooks do not have a matcher — they fire once when the session ends regardless of which tools were used.",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "The date command uses ISO 8601 UTC format. Replace this command with your preferred notification mechanism.",
+            "command": "echo \"Claude session ended at $(date -u +%Y-%m-%dT%H:%M:%SZ) in $PWD\""
+          }
+        ]
+      }
+    ]
+  }
+}

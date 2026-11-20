@@ -1,0 +1,158 @@
+# CLAUDE.md — [PROJECT NAME]
+#
+# This file is the source of truth for Claude Code sessions in this repository.
+# It is generated from the org-wide template in your-org/claude-templates.
+# To update org-wide conventions, update the template and re-generate.
+#
+# Sections marked [CUSTOMIZE] must be filled in per project.
+# Sections marked [ORG-WIDE] apply to all projects and should not be changed locally.
+
+---
+
+## Project Context [CUSTOMIZE]
+
+**Project name:** [e.g., payments-service]
+**Team:** [e.g., Platform Engineering]
+**Tech stack:** [e.g., Node.js 20, TypeScript 5, PostgreSQL 15, Docker]
+**Purpose:** [One paragraph describing what this service does and its role in the system]
+
+**Key entry points:**
+- [e.g., src/index.ts — server startup]
+- [e.g., src/routes/ — API route handlers]
+- [e.g., src/db/ — database access layer]
+
+**Internal docs:** [Link to Confluence, Notion, or internal wiki page for this service]
+**Runbook:** [Link to on-call runbook]
+**Architecture diagram:** [Link]
+
+---
+
+## Team Conventions [ORG-WIDE + CUSTOMIZE]
+
+### Code Style [ORG-WIDE]
+- All files use 2-space indentation unless a language-specific linter overrides this.
+- TypeScript: strict mode enabled; no `any` without a comment explaining why.
+- Python: PEP 8; type hints required on all public functions.
+- Go: standard `gofmt` formatting; no underscore-prefixed exported identifiers.
+- All exported functions and classes must have documentation comments.
+- Maximum file length: 400 lines. If a file exceeds this, split it.
+
+### Naming Conventions [ORG-WIDE]
+- Functions: camelCase (TS/JS/Java), snake_case (Python/Go).
+- Classes/types: PascalCase in all languages.
+- Constants: SCREAMING_SNAKE_CASE.
+- Database columns: snake_case.
+- Environment variables: SCREAMING_SNAKE_CASE with project prefix (e.g., PAYMENTS_DB_URL).
+
+### Project-Specific Conventions [CUSTOMIZE]
+- [e.g., All API responses must use the standard envelope: { data, error, meta }]
+- [e.g., Database queries must go through the repository layer, never directly from routes]
+- [e.g., Feature flags are in src/config/flags.ts]
+
+---
+
+## Approved Commands [ORG-WIDE + CUSTOMIZE]
+
+The following commands are pre-approved and Claude may run them without prompting.
+
+### Always Allowed [ORG-WIDE]
+```
+git status
+git diff
+git log
+git add
+git commit
+```
+
+### Project-Specific Allowed [CUSTOMIZE]
+```
+[List the exact commands allowed for this project, e.g.:]
+npm test
+npm run lint
+npm run lint:fix
+npm run build
+npx tsc --noEmit
+docker-compose up -d
+docker-compose logs
+```
+
+---
+
+## Off-Limits Directories [ORG-WIDE + CUSTOMIZE]
+
+Claude must not modify files in these directories without explicit approval:
+
+### Always Off-Limits [ORG-WIDE]
+- `.github/` — CI/CD workflows require manual review before modification.
+- `migrations/` — Database migrations must be authored and reviewed by a human.
+- `scripts/deploy/` — Deployment scripts must not be modified by Claude.
+- `.env*` — Environment files contain secrets.
+- `Makefile` — Build infrastructure changes require team review.
+
+### Project-Specific Off-Limits [CUSTOMIZE]
+- [e.g., `src/config/production.ts` — Production config must be changed in a controlled process]
+- [e.g., `certs/` — TLS certificates managed separately]
+
+---
+
+## Review Steps Before Merging [ORG-WIDE]
+
+Before asking Claude to open a PR or before opening one yourself after a Claude session:
+
+1. Run the full test suite: `[INSERT TEST COMMAND]` — all tests must pass.
+2. Run the linter: `[INSERT LINT COMMAND]` — no lint errors.
+3. Run type checking: `[INSERT TYPE CHECK COMMAND]` — no type errors.
+4. Review the diff manually in `git diff` — verify no unexpected files were changed.
+5. Check that no files in the Off-Limits directories were modified.
+6. Ensure no secrets, API keys, or tokens are in the diff.
+7. Verify that new code has corresponding tests.
+
+For PRs involving database schema changes, security-sensitive code, or external API contracts: assign an additional reviewer beyond the standard two.
+
+---
+
+## Shared Commands [ORG-WIDE]
+
+These slash commands are available in all org projects. Install the skills from `your-org/claude-templates/skills/`.
+
+| Command | Purpose |
+|---------|---------|
+| `/daily-standup` | Generate a standup summary from the last 24h of git activity |
+| `/changelog` | Generate a changelog entry from recent commits |
+| `/security-review` | Run a security-focused review of changed files |
+| `/pr-description` | Generate a PR description from staged changes |
+| `/onboard` | Generate a codebase overview for a new team member |
+
+---
+
+## Claude Team Usage Policy [ORG-WIDE]
+
+**Approved uses of Claude Code in this organization:**
+
+- Code generation, refactoring, and debugging within approved repos.
+- Generating tests, documentation, and PR descriptions.
+- Code review assistance (as a supplement to, not replacement for, human review).
+- Exploration and analysis of codebases.
+- Automation scripting for development workflows.
+
+**Uses that require explicit team lead approval:**
+
+- Running Claude sessions against production data (even read-only).
+- Using `bypassPermissions` mode.
+- Building SDK agents that make network calls to external services.
+- Using Claude to modify CI/CD configuration or deployment scripts.
+
+**Prohibited uses:**
+
+- Processing customer PII through Claude sessions unless ZDR is confirmed active.
+- Using personal Anthropic accounts for work-related prompts (use the org API key).
+- Sharing session transcripts containing proprietary code or data externally.
+- Running unreviewed hook scripts sourced from the internet.
+
+**Data classification reminder:**
+
+This organization classifies source code as Confidential. Claude Code sessions that include source code are subject to the same data handling rules as other Confidential data. If in doubt, ask your manager or the security team before starting a session with sensitive material.
+
+**Reporting issues:**
+
+If Claude produces incorrect, harmful, or unexpected output, report it via [INTERNAL ISSUE LINK] and use the `/feedback` command in the Claude session to submit the report to Anthropic.

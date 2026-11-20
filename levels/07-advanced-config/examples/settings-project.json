@@ -1,0 +1,53 @@
+{
+  "_comment_top": "Project-level settings file: .claude/settings.json at the repo root. Commit this file so every developer on the team shares the same project configuration. Values here override ~/.claude/settings.json (global) for sessions started in this repo.",
+
+  "_comment_model": "Override the global model with Haiku for this project. This is a cost optimization for a project that runs many automated Claude sessions (e.g., CI-driven code generation). Remove this line to inherit the global model setting.",
+  "model": "claude-haiku-4-5",
+
+  "_comment_effort": "This project uses low effort by default because it primarily runs repetitive, well-defined tasks (formatting, linting fixes, test generation). Override to 'high' for architectural tasks.",
+  "effort": "low",
+
+  "_comment_permissionMode": "Use 'auto' for this project because the allow list below is carefully tuned. Claude will not prompt for anything in the allow list. Developers have reviewed and agreed to these permissions.",
+  "permissionMode": "auto",
+
+  "_comment_permissions": "Project-specific permission rules merged with global rules. Deny rules from both global and project settings are combined — all deny rules apply. Allow rules here are added to global allow rules.",
+  "permissions": {
+    "_comment_allow": "Pre-approve the specific commands this project's development workflow requires. Claude will not prompt before running these.",
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm test -- *)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix)",
+      "Bash(npm run build)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit*)",
+      "Edit(src/**)",
+      "Edit(test/**)",
+      "Edit(tests/**)",
+      "Write(src/**)",
+      "Write(test/**)"
+    ],
+    "_comment_deny": "Additional deny rules specific to this project, merged with global deny rules.",
+    "deny": [
+      "_comment_deny_migrations": "Never let Claude modify database migration files — these must be written and reviewed manually.",
+      "Edit(migrations/**)",
+      "Write(migrations/**)",
+
+      "_comment_deny_config": "Lock down production config files.",
+      "Edit(config/production.*)",
+      "Write(config/production.*)"
+    ]
+  },
+
+  "_comment_env": "Project-specific environment variables. These are safe to commit because they do not contain secrets — they are configuration values that vary by project.",
+  "env": {
+    "NODE_ENV": "test",
+    "DATABASE_URL": "postgres://localhost:5432/myapp_test",
+    "LOG_LEVEL": "debug",
+    "API_BASE_URL": "http://localhost:3000"
+  }
+}

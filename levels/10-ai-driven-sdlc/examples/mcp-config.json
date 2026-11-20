@@ -1,0 +1,124 @@
+{
+  "_description": "Project-scoped MCP server configuration (.mcp.json). Domain 2, Task 2.4: Integrate MCP servers into Claude Code and agent workflows.",
+
+  "_scoping_rules": {
+    "project_scoped": "Place in .mcp.json at project root — version-controlled and shared with all team members",
+    "user_scoped": "Place in ~/.claude.json — personal / experimental servers only, NOT shared via version control",
+    "rule": "Team tooling goes in .mcp.json. Personal experiments go in ~/.claude.json."
+  },
+
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "_scope": "project",
+      "_description": "GitHub PR, issue, and code operations. Shared team tooling.",
+      "_credential_note": "Use ${ENV_VAR} expansion — never commit tokens directly to .mcp.json"
+    },
+
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      },
+      "_scope": "project",
+      "_description": "Read-only database access for schema inspection and query assistance",
+      "_resources_note": "Expose DB schema as an MCP resource so agents don't need exploratory tool calls to discover table structure"
+    },
+
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "@community/mcp-server-jira"],
+      "env": {
+        "JIRA_URL": "${JIRA_URL}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      },
+      "_scope": "project",
+      "_description": "Issue tracking integration for sprint context and ticket lookup",
+      "_community_server_note": "Use existing community MCP servers for standard integrations (Jira, Slack, GitHub). Reserve custom MCP servers for team-specific workflows that have no existing implementation."
+    }
+  },
+
+  "tool_design_reference": {
+    "_section": "Domain 2, Tasks 2.1-2.3: Design effective tool interfaces",
+
+    "effective_descriptions": {
+      "principle": "Tool descriptions are the PRIMARY mechanism LLMs use for tool selection. Minimal or overlapping descriptions cause misrouting.",
+      "bad_example": {
+        "name": "analyze_content",
+        "description": "Analyzes content."
+      },
+      "good_example": {
+        "name": "extract_web_results",
+        "description": "Extracts structured data points from web search result pages. Input: raw HTML or text from a web page. Output: title, URL, publication date, key facts. Use for: processing search result pages. Do NOT use for: local file analysis, database queries, or code review."
+      },
+      "lesson": "Rename tools to eliminate functional overlap. 'analyze_content' vs 'analyze_document' with near-identical descriptions causes systematic misrouting."
+    },
+
+    "scoped_tool_access": {
+      "principle": "Give each subagent ONLY the tools needed for its role. Too many tools (e.g. 18 instead of 4-5) degrade tool selection reliability by increasing decision complexity.",
+      "search_agent_tools": ["search_web", "fetch_url", "search_docs"],
+      "analysis_agent_tools": ["read_file", "grep_code", "run_linter"],
+      "synthesis_agent_tools": ["verify_fact", "format_citation", "compile_report"],
+      "_note": "A synthesis agent with access to search_web will attempt web searches when it should be synthesizing — scope tool access to role to prevent cross-specialization misuse"
+    },
+
+    "tool_choice_options": {
+      "auto": "Model may return text OR call a tool. Use when tool call is optional.",
+      "any": "Model MUST call a tool — cannot return conversational text. Use to guarantee structured output.",
+      "forced": {
+        "type": "tool",
+        "name": "extract_metadata",
+        "_comment": "Model MUST call this specific tool. Use to enforce sequencing in multi-step pipelines (e.g., extract_metadata must run before enrichment tools)."
+      }
+    },
+
+    "structured_error_responses": {
+      "principle": "Generic errors ('Operation failed') prevent the agent from making appropriate recovery decisions. Return structured metadata.",
+      "schema": {
+        "isError": true,
+        "errorCategory": "transient | validation | permission | business",
+        "isRetryable": "boolean — true for transient errors only",
+        "userMessage": "Human-readable explanation safe to show to end users",
+        "technicalDetail": "Internal detail for logging and debugging"
+      },
+      "examples": {
+        "transient_retryable": {
+          "isError": true,
+          "errorCategory": "transient",
+          "isRetryable": true,
+          "userMessage": "The service is temporarily unavailable. Retrying shortly.",
+          "technicalDetail": "HTTP 503 from upstream after 3 retry attempts"
+        },
+        "validation_non_retryable": {
+          "isError": true,
+          "errorCategory": "validation",
+          "isRetryable": false,
+          "userMessage": "The order ID format is invalid. Order IDs must be 8 digits.",
+          "technicalDetail": "order_id 'abc123' failed regex validation /^\\d{8}$/"
+        },
+        "business_non_retryable": {
+          "isError": true,
+          "errorCategory": "business",
+          "isRetryable": false,
+          "userMessage": "This refund cannot be processed automatically. A manager must approve refunds over $500.",
+          "technicalDetail": "Refund amount $750.00 exceeds automated approval threshold $500.00"
+        }
+      },
+      "distinguish_empty_from_error": "A valid query with no results (e.g., no open tickets for this user) is NOT an error. Return an empty array with isError: false. Reserve isError: true for access failures and system errors."
+    },
+
+    "mcp_resources": {
+      "principle": "Use MCP resources to expose content catalogs (issue summaries, DB schema, documentation hierarchy) so agents have visibility into available data without requiring exploratory tool calls.",
+      "example_resources": [
+        "database_schema: complete schema for all tables — agents can plan queries without calling describe_table repeatedly",
+        "open_issues_summary: list of open sprint issues with titles and assignees — reduces exploratory list_issues calls",
+        "api_documentation: endpoint catalog with parameter schemas — agents understand available operations upfront"
+      ]
+    }
+  }
+}

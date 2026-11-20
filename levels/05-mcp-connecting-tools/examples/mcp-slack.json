@@ -1,0 +1,39 @@
+{
+  "_comment": "Slack MCP configuration.",
+  "_app_setup": [
+    "1. Go to https://api.slack.com/apps and click 'Create New App'.",
+    "2. Choose 'From scratch', give it a name (e.g., 'Claude Dev Assistant'), and select your workspace.",
+    "3. Under 'OAuth & Permissions', add the following Bot Token Scopes:",
+    "     channels:history   — read message history from public channels",
+    "     channels:read      — list public channels and get channel info",
+    "     users:read         — resolve user IDs to display names in summaries",
+    "   Only add additional scopes if you have a specific, reviewed use case.",
+    "4. Click 'Install to Workspace' and copy the Bot User OAuth Token (starts with xoxb-).",
+    "5. Invite the bot to each channel it needs to read: /invite @your-bot-name",
+    "   The bot can only read channels it has been explicitly added to.",
+    "6. Find your Team ID in your Slack workspace URL: https://app.slack.com/client/T01234567",
+    "   The T-prefixed string is your SLACK_TEAM_ID.",
+    "Security notes:",
+    "  - Private channels and DMs are not accessible unless the bot is explicitly invited.",
+    "  - Do not invite the bot to channels containing HR, legal, or executive discussions.",
+    "  - Review which channels the bot is in quarterly and remove it from channels no longer needed."
+  ],
+  "mcpServers": {
+
+    "slack": {
+      "_comment": "Connects Claude to Slack message history. SLACK_BOT_TOKEN and SLACK_TEAM_ID must be set before starting Claude.",
+      "_least_privilege": "Bot is scoped to channels:history and channels:read. It can only read channels it has been invited to.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-slack"
+      ],
+      "env": {
+        "_comment_env": "Export SLACK_BOT_TOKEN and SLACK_TEAM_ID in your shell profile. Never paste token values here.",
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+        "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"
+      }
+    }
+
+  }
+}

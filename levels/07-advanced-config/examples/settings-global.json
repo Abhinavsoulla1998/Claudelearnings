@@ -1,0 +1,59 @@
+{
+  "_comment_top": "Global user settings file: ~/.claude/settings.json. These settings apply to all Claude Code sessions for this OS user. Project-level .claude/settings.json values override these.",
+
+  "_comment_model": "model: the default Claude model to use. Options: claude-opus-4-5 (most capable), claude-sonnet-4-6 (balanced), claude-haiku-4-5 (fastest and cheapest). You can override per-session with /model or --model.",
+  "model": "claude-sonnet-4-6",
+
+  "_comment_effort": "effort: default reasoning depth. 'low' uses fewer tokens and is faster. 'normal' is the standard setting. 'high' enables extended thinking for complex problems and uses more tokens. Override per-session with /effort.",
+  "effort": "normal",
+
+  "_comment_theme": "theme: terminal color scheme. 'dark' for dark terminals, 'light' for light terminals, 'auto' to detect from the OS setting.",
+  "theme": "dark",
+
+  "_comment_editorMode": "editorMode: when true, Claude reads the full file before applying edits instead of requiring you to supply the content. Reduces the need to paste large files into prompts.",
+  "editorMode": true,
+
+  "_comment_permissionMode": "permissionMode: controls how Claude asks for permission before running tools. 'default' prompts for file edits and shell commands. 'plan' shows a full plan before doing anything. 'auto' skips prompts for safe operations. 'bypassPermissions' disables all checks — only use in isolated CI environments.",
+  "permissionMode": "default",
+
+  "_comment_hooks": "hooks: shell commands that run in response to Claude events. These are empty at the global level in this example — add project-specific hooks in .claude/settings.json. See Level 7 for the full hook format.",
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": [],
+    "Stop": [],
+    "Start": []
+  },
+
+  "_comment_permissions": "permissions: pre-approved (allow) and always-blocked (deny) tool call patterns. Deny rules take precedence over allow rules. The pattern format is ToolName(argument-glob). These global deny rules block the most dangerous operations across all projects.",
+  "permissions": {
+    "allow": [
+      "Read(**)"
+    ],
+    "deny": [
+      "_comment_deny_1": "Block all git push variants — developers should push from their own terminal after reviewing changes.",
+      "Bash(git push*)",
+
+      "_comment_deny_2": "Block recursive forced deletion — too destructive to allow from an AI session.",
+      "Bash(rm -rf*)",
+
+      "_comment_deny_3": "Block sudo — Claude should not need elevated privileges. If a task requires sudo, do it manually.",
+      "Bash(sudo *)",
+
+      "_comment_deny_4": "Block curl-pipe-bash and wget-pipe-sh patterns commonly used in supply-chain attacks.",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)",
+
+      "_comment_deny_5": "Block editing .env files — secrets should not be modified by Claude.",
+      "Edit(.env*)",
+      "Write(.env*)"
+    ]
+  },
+
+  "_comment_env": "env: environment variables injected into every Claude session and hook command. Do not put secret values here if this file is committed to source control. Reference variables from your shell profile instead.",
+  "env": {
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "info"
+  }
+}
